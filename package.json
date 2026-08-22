@@ -1,0 +1,17 @@
+{
+  "name": "shell-history-lens",
+  "version": "0.1.0",
+  "description": "Pure functions for parsing and analyzing bash/zsh shell history",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
