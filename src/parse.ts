@@ -89,3 +89,76 @@ function endsWithOddTrailingBackslashes(line: string): boolean {
   }
   return count % 2 === 1;
 }
+
+const FISH_CMD_PATTERN = /^- cmd: (.*)$/;
+const FISH_WHEN_PATTERN = /^\s+when: (\d+)$/;
+
+/**
+ * Fish's history file is YAML-ish, not one-command-per-line: each entry
+ * is a `- cmd: ...` line followed by indented `when:` (epoch seconds)
+ * and optional `paths:` metadata we don't need. We track the most
+ * recently seen command and attach it to the next `when:` we find, so a
+ * command missing a `when:` (or the final entry in a truncated file)
+ * still comes through with a null timestamp instead of being dropped.
+ */
+export function parseFishHistory(text: string): HistoryEntry[] {
+  const entries: HistoryEntry[] = [];
+  let pendingCommand: string | null = null;
+
+  for (const rawLine of text.split('\n')) {
+    if (rawLine === '') {
+      continue;
+    }
+
+    const cmdMatch = rawLine.match(FISH_CMD_PATTERN);
+    if (cmdMatch) {
+      if (pendingCommand !== null) {
+        entries.push({ command: pendingCommand, timestamp: null });
+      }
+      pendingCommand = unescapeFishCommand(cmdMatch[1]);
+      continue;
+    }
+
+    if (pendingCommand !== null) {
+      const whenMatch = rawLine.match(FISH_WHEN_PATTERN);
+      if (whenMatch) {
+        entries.push({ command: pendingCommand, timestamp: Number(whenMatch[1]) });
+        pendingCommand = null;
+      }
+    }
+  }
+
+  if (pendingCommand !== null) {
+    entries.push({ command: pendingCommand, timestamp: null });
+  }
+
+  return entries;
+}
+
+/**
+ * Fish escapes backslashes and embedded newlines when it writes a
+ * command to history (`\` -> `\\`, newline -> `\n`). Unescape both so
+ * multi-line commands come back out the way they were typed.
+ */
+function unescapeFishCommand(raw: string): string {
+  let result = '';
+
+  for (let i = 0; i < raw.length; i++) {
+    if (raw[i] === '\\' && i + 1 < raw.length) {
+      const next = raw[i + 1];
+      if (next === 'n') {
+        result += '\n';
+        i++;
+        continue;
+      }
+      if (next === '\\') {
+        result += '\\';
+        i++;
+        continue;
+      }
+    }
+    result += raw[i];
+  }
+
+  return result;
+}

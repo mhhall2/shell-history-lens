@@ -3,10 +3,11 @@
 Every shell writes its history file in a slightly different way. Plain
 bash is one command per line. Bash with `HISTTIMEFORMAT` set interleaves
 `#<epoch>` timestamp lines. Zsh with `EXTENDED_HISTORY` prefixes each
-command with `: <start>:<duration>;`. Multi-line commands get escaped
-differently depending on the shell. If you've ever tried to write a
-quick script to answer "what do I actually run most often", you've
-probably hit at least one of these formats and given up halfway.
+command with `: <start>:<duration>;`. Fish writes a YAML-ish sequence of
+`- cmd:` / `when:` records instead of plain text. Multi-line commands
+get escaped differently depending on the shell. If you've ever tried to
+write a quick script to answer "what do I actually run most often",
+you've probably hit at least one of these formats and given up halfway.
 
 This library does the parsing and the boring statistics, and nothing
 else. It doesn't touch the filesystem, doesn't know your `$HOME`, and
@@ -49,11 +50,22 @@ const entries = parseBashHistory(readFileSync(`${process.env.HOME}/.bash_history
 const lastHour = filterByTimeRange(entries, startEpoch, endEpoch);
 ```
 
+Fish history:
+
+```ts
+import { parseFishHistory } from './src';
+
+const entries = parseFishHistory(
+  readFileSync(`${process.env.HOME}/.local/share/fish/fish_history`, 'utf8')
+);
+```
+
 ## What's here
 
-- `parseBashHistory(text)` / `parseZshHistory(text)` — turn raw history
-  file contents into `HistoryEntry[]` (`{ command, timestamp }`,
-  timestamp is `null` when the shell didn't record one).
+- `parseBashHistory(text)` / `parseZshHistory(text)` /
+  `parseFishHistory(text)` — turn raw history file contents into
+  `HistoryEntry[]` (`{ command, timestamp }`, timestamp is `null` when
+  the shell didn't record one).
 - `dedupe(entries, options)` — collapse repeats, keeping first or last
   occurrence.
 - `extractBaseCommand(command)` — pull the actual binary out of a
@@ -69,8 +81,8 @@ Every function is pure: same input, same output, no hidden state.
 
 ## Not here yet
 
-Fish history (its own YAML-ish format) isn't supported. See the notes
-in the repo for what's planned next.
+No unit tests yet, and `HISTTIMEFORMAT` is assumed to be the default
+`#<epoch>` form rather than a custom `strftime` pattern.
 
 ## License
 
