@@ -79,10 +79,16 @@ const entries = parseFishHistory(
 
 Every function is pure: same input, same output, no hidden state.
 
+## Tests
+
+Run with `npm test`, which compiles with `tsc` and runs the compiled
+output through Node's built-in test runner. No test framework is
+installed — `node --test` is standard library as of Node 18.
+
 ## Not here yet
 
-No unit tests yet, and `HISTTIMEFORMAT` is assumed to be the default
-`#<epoch>` form rather than a custom `strftime` pattern.
+`HISTTIMEFORMAT` is assumed to be the default `#<epoch>` form rather
+than a custom `strftime` pattern.
 
 ## License
 
