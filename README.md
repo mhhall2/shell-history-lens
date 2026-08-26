@@ -76,6 +76,10 @@ const entries = parseFishHistory(
   full line.
 - `filterByTimeRange(entries, start, end)` — inclusive epoch-second
   window filter.
+- `toJSON(entries, options)` / `toExportableEntries(entries)` — export
+  parsed entries as JSON with epoch timestamps converted to ISO 8601,
+  so exported data is readable without knowing which timezone
+  convention the rest of your tooling uses.
 
 Every function is pure: same input, same output, no hidden state.
 
@@ -87,8 +91,9 @@ installed — `node --test` is standard library as of Node 18.
 
 ## Not here yet
 
-`HISTTIMEFORMAT` is assumed to be the default `#<epoch>` form rather
-than a custom `strftime` pattern.
+Malformed lines in a history file are currently parsed best-effort
+rather than reported; there's no way to tell which lines didn't match
+the expected format for a given shell.
 
 ## License
 

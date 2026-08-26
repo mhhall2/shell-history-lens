@@ -9,3 +9,6 @@ export {
   mostUsed,
   filterByTimeRange,
 } from './stats';
+
+export type { ExportedHistoryEntry, JSONExportOptions } from './export';
+export { toExportableEntries, toJSON } from './export';
