@@ -2,7 +2,10 @@ import type { HistoryEntry } from './parse';
 
 export interface ExportedHistoryEntry {
   command: string;
-  /** ISO 8601, or null when the shell didn't record a timestamp. */
+  /**
+   * ISO 8601, or null when the shell didn't record a timestamp or the
+   * recorded value doesn't fit in a JS `Date`.
+   */
   timestamp: string | null;
 }
 
@@ -19,8 +22,20 @@ export interface JSONExportOptions {
 export function toExportableEntries(entries: HistoryEntry[]): ExportedHistoryEntry[] {
   return entries.map((entry) => ({
     command: entry.command,
-    timestamp: entry.timestamp === null ? null : new Date(entry.timestamp * 1000).toISOString(),
+    timestamp: entry.timestamp === null ? null : epochSecondsToISOString(entry.timestamp),
   }));
+}
+
+/**
+ * A corrupted history file can produce a timestamp `Date` can't
+ * represent (a `#<epoch>` or `when:` line with a digit run long enough
+ * to overflow to `Infinity`, for instance). `toISOString()` throws in
+ * that case rather than returning a sentinel, so we check first and
+ * fall back to null instead of taking down the whole export.
+ */
+function epochSecondsToISOString(epochSeconds: number): string | null {
+  const date = new Date(epochSeconds * 1000);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 /** Serializes parsed entries to a JSON string with ISO 8601 timestamps. */

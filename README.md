@@ -93,7 +93,10 @@ installed — `node --test` is standard library as of Node 18.
 
 Malformed lines in a history file are currently parsed best-effort
 rather than reported; there's no way to tell which lines didn't match
-the expected format for a given shell.
+the expected format for a given shell. (A corrupted or truncated
+timestamp itself won't crash anything — `toJSON`/`toExportableEntries`
+fall back to a null timestamp if the recorded value doesn't fit in a
+`Date`.)
 
 ## License
 

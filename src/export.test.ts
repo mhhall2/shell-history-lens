@@ -15,6 +15,11 @@ test('toExportableEntries: leaves a null timestamp as null', () => {
   assert.deepEqual(toExportableEntries(entries), [{ command: 'ls', timestamp: null }]);
 });
 
+test('toExportableEntries: an out-of-range timestamp becomes null instead of throwing', () => {
+  const entries: HistoryEntry[] = [{ command: 'git status', timestamp: 1e30 }];
+  assert.deepEqual(toExportableEntries(entries), [{ command: 'git status', timestamp: null }]);
+});
+
 test('toJSON: compact by default', () => {
   const entries: HistoryEntry[] = [{ command: 'ls', timestamp: null }];
   assert.equal(toJSON(entries), '[{"command":"ls","timestamp":null}]');
