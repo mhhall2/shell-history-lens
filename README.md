@@ -66,6 +66,13 @@ const entries = parseFishHistory(
   `parseFishHistory(text)` — turn raw history file contents into
   `HistoryEntry[]` (`{ command, timestamp }`, timestamp is `null` when
   the shell didn't record one).
+- `parseBashHistoryDetailed(text)` / `parseZshHistoryDetailed(text)` /
+  `parseFishHistoryDetailed(text)` — same parsing, but return
+  `{ entries, unmatchedLines }` so you can see which lines didn't fit
+  the expected format for that shell (a corrupted `#<epoch>` line, a
+  `when:` with a non-numeric value, and so on). Malformed lines still
+  come through best-effort in `entries`; `unmatchedLines` just tells
+  you where to look.
 - `dedupe(entries, options)` — collapse repeats, keeping first or last
   occurrence.
 - `extractBaseCommand(command)` — pull the actual binary out of a
@@ -91,12 +98,10 @@ installed — `node --test` is standard library as of Node 18.
 
 ## Not here yet
 
-Malformed lines in a history file are currently parsed best-effort
-rather than reported; there's no way to tell which lines didn't match
-the expected format for a given shell. (A corrupted or truncated
-timestamp itself won't crash anything — `toJSON`/`toExportableEntries`
-fall back to a null timestamp if the recorded value doesn't fit in a
-`Date`.)
+Everything above reads the whole history file into a string first. For
+a multi-hundred-thousand-line `.zsh_history` that's still fine, but
+there's no streaming entry point yet for parsing a file incrementally
+without holding the whole text in memory at once.
 
 ## License
 

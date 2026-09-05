@@ -1,5 +1,12 @@
-export type { HistoryEntry } from './parse';
-export { parseBashHistory, parseZshHistory, parseFishHistory } from './parse';
+export type { HistoryEntry, UnmatchedLine, HistoryParseResult } from './parse';
+export {
+  parseBashHistory,
+  parseZshHistory,
+  parseFishHistory,
+  parseBashHistoryDetailed,
+  parseZshHistoryDetailed,
+  parseFishHistoryDetailed,
+} from './parse';
 
 export type { CommandFrequency, DedupeOptions, FrequencyOptions } from './stats';
 export {
