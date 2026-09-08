@@ -58,7 +58,7 @@ export function parseBashHistory(text: string): HistoryEntry[] {
   return parseBashHistoryDetailed(text).entries;
 }
 
-const ZSH_EXTENDED_PATTERN = /^: (\d+):(\d+);([\s\S]*)$/;
+export const ZSH_EXTENDED_PATTERN = /^: (\d+):(\d+);([\s\S]*)$/;
 
 /**
  * Zsh extended history (`setopt EXTENDED_HISTORY`) writes
@@ -137,7 +137,7 @@ function joinBackslashContinuations(text: string): LogicalLine[] {
   return logicalLines;
 }
 
-function endsWithOddTrailingBackslashes(line: string): boolean {
+export function endsWithOddTrailingBackslashes(line: string): boolean {
   let count = 0;
   for (let i = line.length - 1; i >= 0 && line[i] === '\\'; i--) {
     count++;
@@ -145,10 +145,10 @@ function endsWithOddTrailingBackslashes(line: string): boolean {
   return count % 2 === 1;
 }
 
-const FISH_CMD_PATTERN = /^- cmd: (.*)$/;
-const FISH_WHEN_PATTERN = /^\s+when: (\d+)$/;
-const FISH_PATHS_HEADER_PATTERN = /^\s+paths:\s*$/;
-const FISH_PATH_ITEM_PATTERN = /^\s+- .*$/;
+export const FISH_CMD_PATTERN = /^- cmd: (.*)$/;
+export const FISH_WHEN_PATTERN = /^\s+when: (\d+)$/;
+export const FISH_PATHS_HEADER_PATTERN = /^\s+paths:\s*$/;
+export const FISH_PATH_ITEM_PATTERN = /^\s+- .*$/;
 
 /**
  * Fish's history file is YAML-ish, not one-command-per-line: each entry
@@ -218,7 +218,7 @@ export function parseFishHistory(text: string): HistoryEntry[] {
  * command to history (`\` -> `\\`, newline -> `\n`). Unescape both so
  * multi-line commands come back out the way they were typed.
  */
-function unescapeFishCommand(raw: string): string {
+export function unescapeFishCommand(raw: string): string {
   let result = '';
 
   for (let i = 0; i < raw.length; i++) {

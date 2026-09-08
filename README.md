@@ -88,20 +88,49 @@ const entries = parseFishHistory(
   so exported data is readable without knowing which timezone
   convention the rest of your tooling uses.
 
+- `streamBashHistory(lines)` / `streamZshHistory(lines)` /
+  `streamFishHistory(lines)` — same parsing rules, but consume an
+  async or sync iterable of lines and yield `HistoryEntry` values one
+  at a time instead of returning an array, for files too large to read
+  into memory as a single string.
+
 Every function is pure: same input, same output, no hidden state.
+
+## Streaming
+
+`parseBashHistory` and friends take the whole file as a string, which is
+fine until the file is big enough that reading it into memory first is
+the problem. `streamBashHistory(lines)` / `streamZshHistory(lines)` /
+`streamFishHistory(lines)` take an async or sync iterable of lines
+instead and yield `HistoryEntry` values one at a time, so you can pipe a
+multi-gigabyte `.zsh_history` through without holding more than the
+current entry (and, for zsh, a pending backslash-continued command) in
+memory:
+
+```ts
+import { createReadStream } from 'node:fs';
+import { createInterface } from 'node:readline';
+import { streamZshHistory } from './src';
+
+const lines = createInterface({ input: createReadStream(`${process.env.HOME}/.zsh_history`) });
+
+for await (const entry of streamZshHistory(lines)) {
+  if (entry.command.startsWith('git ')) {
+    console.log(entry.command);
+  }
+}
+```
+
+There's no `unmatchedLines` array here — collecting one would defeat
+the point of streaming a file you can't fully hold in memory. Pass
+`{ onUnmatchedLine }` instead if you want to log or count malformed
+lines as they're found.
 
 ## Tests
 
 Run with `npm test`, which compiles with `tsc` and runs the compiled
 output through Node's built-in test runner. No test framework is
 installed — `node --test` is standard library as of Node 18.
-
-## Not here yet
-
-Everything above reads the whole history file into a string first. For
-a multi-hundred-thousand-line `.zsh_history` that's still fine, but
-there's no streaming entry point yet for parsing a file incrementally
-without holding the whole text in memory at once.
 
 ## License
 
