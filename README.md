@@ -126,6 +126,25 @@ the point of streaming a file you can't fully hold in memory. Pass
 `{ onUnmatchedLine }` instead if you want to log or count malformed
 lines as they're found.
 
+## CLI
+
+`src/cli.ts` compiles to `dist/cli.js` and wires `fs.createReadStream`
+through `readline` into the stream parsers, so it never reads a whole
+history file into memory before parsing it. Run it directly with:
+
+```sh
+node dist/cli.js --shell zsh --top 5
+node dist/cli.js --shell bash --file /path/to/.bash_history --base-command
+node dist/cli.js --shell fish --json > history.json
+node dist/cli.js --shell zsh --since 1700000000 --until 1700086400
+```
+
+With no `--file`, it looks in the usual place for the given shell
+(`~/.zsh_history`, `~/.bash_history`, or
+`~/.local/share/fish/fish_history`). `--json` prints the full parsed
+history via `toJSON`; otherwise it prints the top N commands (10 by
+default, change with `--top`) one per line as `count<TAB>command`.
+
 ## Tests
 
 Run with `npm test`, which compiles with `tsc` and runs the compiled
