@@ -93,6 +93,11 @@ const entries = parseFishHistory(
   async or sync iterable of lines and yield `HistoryEntry` values one
   at a time instead of returning an array, for files too large to read
   into memory as a single string.
+- `frequencyByCommandStream(entries, options)` / `dedupeStream(entries, options)`
+  — same results as `frequencyByCommand` and `dedupe`, but consume an
+  async or sync iterable of entries so you can pipe the output of the
+  `stream*History` functions straight through without ever holding the
+  full entry list in memory.
 
 Every function is pure: same input, same output, no hidden state.
 
@@ -125,6 +130,26 @@ There's no `unmatchedLines` array here — collecting one would defeat
 the point of streaming a file you can't fully hold in memory. Pass
 `{ onUnmatchedLine }` instead if you want to log or count malformed
 lines as they're found.
+
+`dedupe` and `frequencyByCommand` have streaming counterparts too,
+since building the full `HistoryEntry[]` array just to hand it to one
+of them defeats the point of having parsed the file as a stream in the
+first place:
+
+```ts
+import { streamZshHistory, frequencyByCommandStream, dedupeStream } from './src';
+
+const lines = createInterface({ input: createReadStream(`${process.env.HOME}/.zsh_history`) });
+const top = await frequencyByCommandStream(streamZshHistory(lines), { baseCommandOnly: true });
+```
+
+Both hold memory proportional to the number of *distinct* commands
+seen, not the number of entries in the source. `frequencyByCommandStream`
+can't return anything until the source is exhausted (it's a total
+count), and neither can `dedupeStream` with the default `keep: 'last'`
+(a later duplicate can still change what gets kept for a command). With
+`keep: 'first'`, though, `dedupeStream` yields each command the moment
+it's first seen, since that occurrence is already final.
 
 ## CLI
 

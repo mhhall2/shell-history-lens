@@ -1,7 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { HistoryEntry, UnmatchedLine } from './parse';
-import { streamBashHistory, streamZshHistory, streamFishHistory } from './stream';
+import {
+  streamBashHistory,
+  streamZshHistory,
+  streamFishHistory,
+  frequencyByCommandStream,
+  dedupeStream,
+} from './stream';
 
 async function* toAsyncLines(text: string): AsyncGenerator<string> {
   for (const line of text.split('\n')) {
@@ -15,6 +21,16 @@ async function collect(gen: AsyncGenerator<HistoryEntry>): Promise<HistoryEntry[
     out.push(entry);
   }
   return out;
+}
+
+function entry(command: string, timestamp: number | null = null): HistoryEntry {
+  return { command, timestamp };
+}
+
+async function* toAsyncEntries(entries: HistoryEntry[]): AsyncGenerator<HistoryEntry> {
+  for (const e of entries) {
+    yield e;
+  }
 }
 
 test('streamBashHistory: matches parseBashHistory for a well-formed file', async () => {
@@ -94,4 +110,39 @@ test('streamFishHistory: reports a completely unrecognized line', async () => {
   const unmatched: UnmatchedLine[] = [];
   await collect(streamFishHistory(toAsyncLines(text), { onUnmatchedLine: (line) => unmatched.push(line) }));
   assert.deepEqual(unmatched, [{ line: 3, text: 'some garbage line' }]);
+});
+
+test('frequencyByCommandStream: matches frequencyByCommand for an async source', async () => {
+  const entries = toAsyncEntries([entry('ls'), entry('git status'), entry('ls'), entry('ls')]);
+  assert.deepEqual(await frequencyByCommandStream(entries), [
+    { command: 'ls', count: 3 },
+    { command: 'git status', count: 1 },
+  ]);
+});
+
+test('frequencyByCommandStream: accepts a plain sync iterable and honors baseCommandOnly', async () => {
+  const entries = [entry('git status'), entry('git commit -m x'), entry('sudo npm test')];
+  assert.deepEqual(await frequencyByCommandStream(entries, { baseCommandOnly: true }), [
+    { command: 'git', count: 2 },
+    { command: 'npm', count: 1 },
+  ]);
+});
+
+test("dedupeStream: keep 'first' yields each command as soon as it's first seen", async () => {
+  const yielded: string[] = [];
+  const entries = toAsyncEntries([entry('ls', 1), entry('git status', 2), entry('ls', 3)]);
+  for await (const e of dedupeStream(entries, { keep: 'first' })) {
+    yielded.push(e.command);
+    assert.ok(yielded.length <= 2, 'should not have seen the third input entry yet');
+  }
+  assert.deepEqual(yielded, ['ls', 'git status']);
+});
+
+test('dedupeStream: default keeps the last occurrence but the first position, matching dedupe', async () => {
+  const entries = [entry('ls', 1), entry('git status', 2), entry('ls', 3)];
+  const result: HistoryEntry[] = [];
+  for await (const e of dedupeStream(toAsyncEntries(entries))) {
+    result.push(e);
+  }
+  assert.deepEqual(result, [entry('ls', 3), entry('git status', 2)]);
 });

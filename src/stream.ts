@@ -8,6 +8,8 @@ import {
   endsWithOddTrailingBackslashes,
   unescapeFishCommand,
 } from './parse';
+import type { CommandFrequency, DedupeOptions, FrequencyOptions } from './stats';
+import { extractBaseCommand } from './stats';
 
 /** A line source: whatever the caller reads their file with (e.g. `readline.createInterface`). */
 export type LineSource = AsyncIterable<string> | Iterable<string>;
@@ -163,5 +165,78 @@ export async function* streamFishHistory(
 
   if (pendingCommand !== null) {
     yield { command: pendingCommand, timestamp: null };
+  }
+}
+
+/** A source of already-parsed entries, e.g. the output of one of the `stream*History` generators above. */
+export type HistoryEntrySource = AsyncIterable<HistoryEntry> | Iterable<HistoryEntry>;
+
+/**
+ * Same result as `frequencyByCommand`, but consumes entries one at a
+ * time instead of requiring them in an array first. Memory use is
+ * bounded by the number of distinct commands, not the total number of
+ * entries, so it's the right choice to pair with `streamZshHistory`
+ * and friends on a large history file.
+ */
+export async function frequencyByCommandStream(
+  entries: HistoryEntrySource,
+  options: FrequencyOptions = {}
+): Promise<CommandFrequency[]> {
+  const counts = new Map<string, number>();
+
+  for await (const entry of entries) {
+    const key = options.baseCommandOnly ? extractBaseCommand(entry.command) : entry.command;
+    if (key === '') {
+      continue;
+    }
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([command, count]) => ({ command, count }))
+    .sort((a, b) => b.count - a.count || a.command.localeCompare(b.command));
+}
+
+/**
+ * Same result as `dedupe`, but consumes entries one at a time. Memory
+ * use is bounded by the number of distinct commands rather than the
+ * total number of entries, which is the point when the source is a
+ * stream of millions of lines drawn from a much smaller set of
+ * commands.
+ *
+ * With `keep: 'first'`, entries are yielded as soon as their command
+ * is first seen, since that occurrence can never change. With
+ * `keep: 'last'` (the default, matching `dedupe`) nothing can be
+ * yielded until the source is exhausted, since a later duplicate could
+ * still replace the kept entry - so this variant buffers one entry per
+ * distinct command and yields them all at the end, in first-seen order.
+ */
+export async function* dedupeStream(
+  entries: HistoryEntrySource,
+  options: DedupeOptions = {}
+): AsyncGenerator<HistoryEntry> {
+  const keep = options.keep ?? 'last';
+
+  if (keep === 'first') {
+    const seen = new Set<string>();
+    for await (const entry of entries) {
+      if (!seen.has(entry.command)) {
+        seen.add(entry.command);
+        yield entry;
+      }
+    }
+    return;
+  }
+
+  const order: string[] = [];
+  const latest = new Map<string, HistoryEntry>();
+  for await (const entry of entries) {
+    if (!latest.has(entry.command)) {
+      order.push(entry.command);
+    }
+    latest.set(entry.command, entry);
+  }
+  for (const command of order) {
+    yield latest.get(command) as HistoryEntry;
   }
 }

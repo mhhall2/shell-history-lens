@@ -20,5 +20,11 @@ export {
 export type { ExportedHistoryEntry, JSONExportOptions } from './export';
 export { toExportableEntries, toJSON } from './export';
 
-export type { LineSource, StreamParseOptions } from './stream';
-export { streamBashHistory, streamZshHistory, streamFishHistory } from './stream';
+export type { LineSource, StreamParseOptions, HistoryEntrySource } from './stream';
+export {
+  streamBashHistory,
+  streamZshHistory,
+  streamFishHistory,
+  frequencyByCommandStream,
+  dedupeStream,
+} from './stream';
