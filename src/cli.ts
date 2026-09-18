@@ -10,7 +10,7 @@ import { toJSON } from './export';
 
 type Shell = 'bash' | 'zsh' | 'fish';
 
-interface CliOptions {
+export interface CliOptions {
   shell: Shell;
   file: string;
   top: number;
@@ -20,7 +20,7 @@ interface CliOptions {
   until: number | null;
 }
 
-function defaultHistoryFile(shell: Shell): string {
+export function defaultHistoryFile(shell: Shell): string {
   switch (shell) {
     case 'bash':
       return join(homedir(), '.bash_history');
@@ -45,7 +45,7 @@ function requireShell(value: string | undefined): Shell {
   return value;
 }
 
-function parseArgs(argv: string[]): CliOptions {
+export function parseArgs(argv: string[]): CliOptions {
   const options: CliOptions = {
     shell: 'zsh',
     file: '',
@@ -135,7 +135,11 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+// Guarded so requiring cli.js from a test (to exercise parseArgs, etc.)
+// doesn't also try to read a real history file off disk.
+if (require.main === module) {
+  main().catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  });
+}
