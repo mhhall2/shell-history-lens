@@ -92,7 +92,7 @@ export function parseArgs(argv: string[]): CliOptions {
   return options;
 }
 
-function streamEntries(shell: Shell, file: string): AsyncGenerator<HistoryEntry> {
+export function streamEntries(shell: Shell, file: string): AsyncGenerator<HistoryEntry> {
   const lines = createInterface({ input: createReadStream(file) });
   switch (shell) {
     case 'bash':
